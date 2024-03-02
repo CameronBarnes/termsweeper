@@ -3,12 +3,13 @@ use anyhow::{Result, Ok};
 use crate::term::{app::App, event::EventHandler, tui::Tui, update::update};
 
 mod term;
+mod types;
 
 fn main() -> Result<()> {
     println!("Hello, world!");
 
     // Build app object
-    let mut app = App::new();
+    let mut app = App::new(types::Difficulty::Easy);
 
     // Init term ui
     let backend = CrosstermBackend::new(std::io::stderr());
@@ -23,7 +24,7 @@ fn main() -> Result<()> {
 
         match tui.events.next()? {
             term::event::Event::Key(key_event) => update(&mut app, key_event),
-            term::event::Event::Mouse(_) => {
+            term::event::Event::Mouse(_e) => { // FIXME: Fix this
                 
             }
             _ => {}
