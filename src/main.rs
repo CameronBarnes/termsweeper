@@ -1,4 +1,4 @@
-use crossterm::event::{MouseEventKind, MouseButton, KeyEventKind, KeyModifiers};
+use crossterm::event::{MouseEventKind, MouseButton};
 use ratatui::{prelude::CrosstermBackend, Terminal};
 use anyhow::{Result, Ok};
 use crate::term::{app::App, event::EventHandler, tui::Tui, update::update};
@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     // Init term ui
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(16);
+    let events = EventHandler::new(33);
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
@@ -31,10 +31,12 @@ fn main() -> Result<()> {
                 if let MouseEventKind::Up(button) = e.kind {
                     match button {
                         MouseButton::Left => {
-                            if e.modifiers == KeyModifiers::CONTROL {
+                            if app.double_click.is_some_and(|pos| pos.0 == x && pos.1 == y) {
                                 app.board.do_control_click(x.into(), y.into());
+                                //eprintln!("Double Click");
                             } else {
                                 app.board.left_click(x.into(), y.into());
+                                app.double_click = Some((x, y));
                             }
                         },
                         MouseButton::Right => app.board.right_click(x.into(), y.into()),
@@ -42,6 +44,7 @@ fn main() -> Result<()> {
                     }
                 }
             }
+            //term::event::Event::Tick => app.double_click = None,
             _ => {}
         }
     }

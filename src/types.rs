@@ -1,5 +1,9 @@
 use rand::prelude::*;
-use ratatui::{widgets::{Paragraph, Block, Borders}, text::{Span, Line}, style::Stylize};
+use ratatui::{
+    style::Stylize,
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Difficulty {
@@ -43,17 +47,19 @@ impl Tile {
     pub fn as_span(&self) -> Span {
         match self.state {
             TileState::Hidden => Span::raw(" ").on_white(),
-            TileState::Question => Span::raw("?").blue().on_white(),
-            TileState::Marked => Span::raw("F").red().on_white(),
+            TileState::Question => Span::raw("?").bold().blue().on_white(),
+            TileState::Marked => Span::raw("⚑").red().on_white(),
             TileState::Visible => {
                 if self.is_mine() {
                     Span::raw("*").on_red()
                 } else if self.bombs_near() == 0 {
                     Span::raw(" ")
                 } else {
-                    Span::raw(self.bombs_near().to_string()).on_dark_gray()
+                    Span::raw(self.bombs_near().to_string())
+                        .bold()
+                        .on_dark_gray()
                 }
-            },
+            }
         }
     }
 }
@@ -176,7 +182,12 @@ pub struct Board {
 
 impl Board {
     pub fn new(difficulty: Difficulty) -> Self {
-        Self{difficulty, tiles: gen_tiles(difficulty), game_over: false, first_move: true}
+        Self {
+            difficulty,
+            tiles: gen_tiles(difficulty),
+            game_over: false,
+            first_move: true,
+        }
     }
 
     pub fn to_widget(&self) -> Paragraph {
@@ -191,8 +202,7 @@ impl Board {
             }
             text.push(Line::from(span_vec));
         }
-        Paragraph::new(text)
-            .block(Block::new().borders(Borders::ALL))
+        Paragraph::new(text).block(Block::new().borders(Borders::ALL))
     }
 
     pub fn left_click(&mut self, x: usize, y: usize) {
@@ -201,7 +211,11 @@ impl Board {
         }
         let mut tile = self.tiles.get_mut(x).and_then(|x| x.get_mut(y));
 
-        while self.first_move && tile.as_ref().map_or(false, |tile| tile.is_mine() || tile.bombs_near() > 0) {
+        while self.first_move
+            && tile
+                .as_ref()
+                .map_or(false, |tile| tile.is_mine() || tile.bombs_near() > 0)
+        {
             self.tiles = gen_tiles(self.difficulty);
             tile = self.tiles.get_mut(x).and_then(|x| x.get_mut(y));
         }
@@ -226,19 +240,23 @@ impl Board {
     }
 
     pub fn do_control_click(&mut self, x: usize, y: usize) {
-
         let mut tiles_to_left_click = Vec::new();
-        for (x, y) in do_around(x, y, &mut self.tiles, |tile| tile.state != TileState::Marked) {
-            let num_bombs = self.tiles[x][y].bombs_near();
-            let marked_around = do_around(x, y, &mut self.tiles, |tile| tile.tile_state() == TileState::Marked).len();
-            if marked_around == num_bombs {
-                tiles_to_left_click.push((x, y));
+        let tile = self.tiles.get(x).and_then(|x| x.get(y));
+        if tile.is_some() {
+            let num_around = tile.unwrap().bombs_near();
+            let marked_around = do_around(x, y, &mut self.tiles, |tile| {
+                tile.tile_state() == TileState::Marked
+            })
+            .len();
+            if num_around == marked_around {
+                tiles_to_left_click.append(&mut do_around(x, y, &mut self.tiles, |tile| {
+                    tile.tile_state() != TileState::Marked
+                }));
             }
         }
         for (x, y) in tiles_to_left_click {
             self.left_click(x, y);
         }
-
     }
 
     pub fn right_click(&mut self, x: usize, y: usize) {
