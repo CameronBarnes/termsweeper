@@ -343,7 +343,6 @@ impl Board {
             }
         }
         for (x, y) in tiles_to_left_click {
-            println!("x: {x}, y: {y}");
             self.left_click(x, y);
             self.do_control_click(x, y);
         }

@@ -1,6 +1,9 @@
-use ratatui::{prelude::Rect, widgets::{Paragraph, Block, Borders}};
+use ratatui::{
+    prelude::Rect,
+    widgets::{Block, Borders, Paragraph},
+};
 
-use crate::types::{Difficulty, Board};
+use crate::types::{Board, Difficulty};
 
 pub struct App {
     pub should_quit: bool,
@@ -11,12 +14,21 @@ pub struct App {
 
 impl App {
     pub fn new(difficulty: Difficulty) -> Self {
-        Self{should_quit: false, board: Board::new(difficulty), board_rect: Rect::default(), last_click_pos: (0 ,0)}
+        Self {
+            should_quit: false,
+            board: Board::new(difficulty),
+            board_rect: Rect::default(),
+            last_click_pos: (0, 0),
+        }
     }
 
     const fn translate_click_coordinates(&self, x: usize, y: usize) -> (usize, usize) {
-        let x = x.saturating_sub(self.board_rect.x as usize + 1).saturating_div(3);
-        let y = y.saturating_sub(self.board_rect.y as usize + 1).saturating_div(3);
+        let x = x
+            .saturating_sub(self.board_rect.x as usize + 1)
+            .saturating_div(3);
+        let y = y
+            .saturating_sub(self.board_rect.y as usize + 1)
+            .saturating_div(3);
         (x, y)
     }
 
@@ -55,14 +67,16 @@ impl App {
                 self.board.last_move_time().map_or_else(
                     || format!("{:?}", start.elapsed()),
                     |end| format!("{:?}", end.duration_since(start)),
-                    )
+                )
             },
         );
-        self.board.to_widget().block(
-        Block::new()
-            .borders(Borders::ALL)
-            .title(format!("Minesweeper: {} - {}", self.difficulty(), time)),
-        )
+        self.board
+            .to_widget()
+            .block(Block::new().borders(Borders::ALL).title(format!(
+                "Minesweeper: {} - {}",
+                self.difficulty(),
+                time
+            )))
     }
 
     pub fn get_board_size_with_border(&self) -> (u16, u16) {
