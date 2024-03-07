@@ -1,10 +1,10 @@
-use std::{fmt::Display, time::Instant};
+use std::time::{Instant, Duration};
 
 use rand::prelude::*;
 use ratatui::{
     style::Stylize,
     text::{Line, Span},
-    widgets::Paragraph,
+    widgets::{Paragraph, ListItem},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -14,12 +14,21 @@ pub enum Difficulty {
     Hard,
 }
 
-impl Display for Difficulty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Difficulty {
+    pub const fn as_static_str(self) -> &'static str {
         match self {
-            Self::Easy => write!(f, "Easy"),
-            Self::Medium => write!(f, "Medium"),
-            Self::Hard => write!(f, "Hard"),
+            Self::Easy => "Easy",
+            Self::Medium => "Medium",
+            Self::Hard => "Hard",
+        }
+    }
+
+    pub fn as_span(self) -> Span<'static> {
+        let span = Span::raw(self.as_static_str()).italic();
+        match self {
+            Self::Easy => span.green(),
+            Self::Medium => span.yellow(),
+            Self::Hard => span.red(),
         }
     }
 }
@@ -364,13 +373,7 @@ impl Board {
                 tile.set_state(TileState::Marked);
             }
         }
-        if self
-            .tiles
-            .iter()
-            .flat_map(|vec| vec.iter())
-            .filter(|tile| tile.is_mine())
-            .all(|tile| tile.tile_state() == TileState::Marked)
-        {
+        if self.check_all_mine_state(TileState::Marked) {
             self.game_over = Some(Instant::now());
             for tile in self.tiles.iter_mut().flat_map(|vec| vec.iter_mut()) {
                 if !tile.is_mine() {
@@ -378,6 +381,10 @@ impl Board {
                 }
             }
         }
+    }
+
+    pub fn check_all_mine_state(&self, state: TileState) -> bool {
+        self.tiles.iter().flat_map(|vec| vec.iter()).filter(|tile| tile.is_mine()).all(|tile| tile.tile_state() == state)
     }
 
     pub fn middle_click(&mut self, x: usize, y: usize) {
@@ -419,5 +426,37 @@ impl Board {
         let x = self.tiles.len();
         let y = self.tiles[0].len();
         (x, y)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Score {
+    difficulty: Difficulty,
+    time: Duration,
+}
+
+impl Score {
+    pub const fn new(difficulty: Difficulty, time: Duration) -> Self {
+        Self{difficulty, time}
+    }
+
+    pub fn as_string(&self) -> String {
+        format!("{}: {}", self.difficulty.as_static_str(), self.time.as_secs())
+    }
+
+    pub const fn time(&self) -> Duration {
+        self.time
+    }
+
+    pub const fn difficulty(&self) -> Difficulty {
+        self.difficulty
+    }
+
+    pub fn as_list_item(&self) -> ListItem {
+        let difficulty = self.difficulty.as_span();
+        let mid = Span::raw(": ");
+        let time = Span::raw(self.time().as_secs().to_string()).blue().bold();
+        let text = Line::default().spans(vec![difficulty, mid, time, Span::raw("s")]).centered();
+        ListItem::new(text)
     }
 }
