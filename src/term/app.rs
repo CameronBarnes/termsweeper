@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::{
     io::{read_leaderboard, write_leaderboard},
-    types::{Board, Difficulty, Score},
+    types::{Board, Difficulty, Score, TileState},
 };
 
 pub struct App {
@@ -37,11 +37,7 @@ impl App {
 
     pub fn tick(&mut self) {
         if self.board.last_move_time().is_some() && !self.leaderboard_updated {
-            if self
-                .board
-                .check_all_mine_state(crate::types::TileState::Marked)
-            
-            {
+            if self.board.check_all_mine_state(TileState::Marked) {
                 let time = self
                     .board
                     .last_move_time()
@@ -54,6 +50,15 @@ impl App {
                 let _ = write_leaderboard(&self.leaderboard);
             }
             self.leaderboard_updated = true;
+        }
+
+        if self.board.last_move_time().is_some()
+            && !self.board.check_all_mine_state(TileState::Marked)
+            && !self.board.check_all_mine_state(TileState::Visible)
+        {
+            self.board.do_game_over_animation();
+        } else {
+            self.board.clear_fire();
         }
     }
 

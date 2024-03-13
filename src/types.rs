@@ -1,10 +1,10 @@
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 
 use rand::prelude::*;
 use ratatui::{
     style::Stylize,
     text::{Line, Span},
-    widgets::{Paragraph, ListItem},
+    widgets::{ListItem, Paragraph},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -46,6 +46,7 @@ pub struct Tile {
     is_mine: bool,
     state: TileState,
     bombs_near: usize,
+    fire: bool,
 }
 
 impl Tile {
@@ -66,7 +67,7 @@ impl Tile {
     }
 
     pub fn as_span(&self, sub_line: usize) -> Vec<Span> {
-        match sub_line {
+        let mut line = match sub_line {
             0 => {
                 let span = Span::raw("▗▄▖");
                 if self.tile_state() == TileState::Visible {
@@ -111,7 +112,7 @@ impl Tile {
                     } else {
                         vec![
                             Span::raw("▐").dark_gray(),
-                            Span::raw(self.bombs_near().to_string())
+                            num_as_span(self.bombs_near())
                                 .bold()
                                 .on_dark_gray(),
                             Span::raw("▌").dark_gray(),
@@ -134,7 +135,26 @@ impl Tile {
                 }
             }
             _ => panic!(),
+        };
+        if self.fire {
+            line = line.into_iter().enumerate().map(|(index, span)| if index == 1 {span} else {span.on_red()}).collect();
         }
+        line
+    }
+}
+
+fn num_as_span(num: usize) -> Span<'static> {
+    assert!(num < 9);
+    match num {
+        1 => Span::raw("1").light_blue(),
+        2 => Span::raw("2").light_green(),
+        3 => Span::raw("3").light_red(),
+        4 => Span::raw("4").light_magenta(),
+        5 => Span::raw("5").light_yellow(),
+        6 => Span::raw("6").light_cyan(),
+        7 => Span::raw("7").black(),
+        8 => Span::raw("8").gray(),
+        _ => unreachable!()
     }
 }
 
@@ -144,6 +164,7 @@ impl Default for Tile {
             is_mine: false,
             state: TileState::Hidden,
             bombs_near: 0,
+            fire: false,
         }
     }
 }
@@ -252,6 +273,8 @@ pub struct Board {
     tiles: Vec<Vec<Tile>>,
     game_over: Option<Instant>,
     first_move: Option<Instant>,
+    game_over_pos: (usize, usize),
+    game_over_state_counter: usize,
 }
 
 impl Board {
@@ -261,6 +284,8 @@ impl Board {
             tiles: gen_tiles(difficulty),
             game_over: None,
             first_move: None,
+            game_over_pos: (0, 0),
+            game_over_state_counter: 1,
         }
     }
 
@@ -324,12 +349,61 @@ impl Board {
             self.flood_fill(x, y);
         }
         if self.game_over.is_some() {
-            for tile in self.tiles.iter_mut().flat_map(|vec| vec.iter_mut()) {
+            self.game_over_pos = (x, y);
+        }
+    }
+
+    pub fn clear_fire(&mut self) {
+        for tile in self.tiles.iter_mut().flat_map(|vec| vec.iter_mut()) {
+            tile.fire = false;
+        }
+    }
+
+    pub fn do_game_over_animation(&mut self) {
+        assert!(self.game_over.is_some());
+        self.clear_fire();
+
+        // Expand out
+        let (x, y) = self.game_over_pos;
+        let diff = self.game_over_state_counter;
+        let min_x = x.checked_sub(diff);
+        let min_y = y.checked_sub(diff);
+        let max_x = x.saturating_add(diff);
+        let max_y = y.saturating_add(diff);
+
+        for x in min_x.unwrap_or(0)..=max_x {
+            if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(min_y.unwrap_or(usize::MAX))) {
                 if tile.is_mine() {
                     tile.set_state(TileState::Visible);
+                } else {
+                    tile.fire = true;
+                }
+            }
+            if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(max_y)) {
+                if tile.is_mine() {
+                    tile.set_state(TileState::Visible);
+                } else {
+                    tile.fire = true;
                 }
             }
         }
+        for y in min_y.unwrap_or(0)..=max_y {
+            if let Some(tile) = self.tiles.get_mut(min_x.unwrap_or(usize::MAX)).and_then(|col| col.get_mut(y)) {
+                if tile.is_mine() {
+                    tile.set_state(TileState::Visible);
+                } else {
+                    tile.fire = true;
+                }
+            }
+            if let Some(tile) = self.tiles.get_mut(max_x).and_then(|col| col.get_mut(y)) {
+                if tile.is_mine() {
+                    tile.set_state(TileState::Visible);
+                } else {
+                    tile.fire = true;
+                }
+            }
+        }
+        self.game_over_state_counter += 1;
     }
 
     pub fn do_control_click(&mut self, x: usize, y: usize) {
@@ -384,7 +458,11 @@ impl Board {
     }
 
     pub fn check_all_mine_state(&self, state: TileState) -> bool {
-        self.tiles.iter().flat_map(|vec| vec.iter()).filter(|tile| tile.is_mine()).all(|tile| tile.tile_state() == state)
+        self.tiles
+            .iter()
+            .flat_map(|vec| vec.iter())
+            .filter(|tile| tile.is_mine())
+            .all(|tile| tile.tile_state() == state)
     }
 
     pub fn middle_click(&mut self, x: usize, y: usize) {
@@ -437,11 +515,15 @@ pub struct Score {
 
 impl Score {
     pub const fn new(difficulty: Difficulty, time: Duration) -> Self {
-        Self{difficulty, time}
+        Self { difficulty, time }
     }
 
     pub fn as_string(&self) -> String {
-        format!("{}: {}", self.difficulty.as_static_str(), self.time.as_secs())
+        format!(
+            "{}: {}",
+            self.difficulty.as_static_str(),
+            self.time.as_secs()
+        )
     }
 
     pub const fn time(&self) -> Duration {
@@ -456,7 +538,9 @@ impl Score {
         let difficulty = self.difficulty.as_span();
         let mid = Span::raw(": ");
         let time = Span::raw(self.time().as_secs().to_string()).blue().bold();
-        let text = Line::default().spans(vec![difficulty, mid, time, Span::raw("s")]).centered();
+        let text = Line::default()
+            .spans(vec![difficulty, mid, time, Span::raw("s")])
+            .centered();
         ListItem::new(text)
     }
 }
