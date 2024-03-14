@@ -243,6 +243,57 @@ pub fn do_around(
     matching
 }
 
+#[allow(clippy::comparison_chain)]
+#[allow(clippy::cast_possible_wrap)]
+fn circle_points(center: (usize, usize), x: isize, y: isize) -> Vec<(isize, isize)> {
+    let (cx, cy) = (center.0 as isize, center.1 as isize);
+    let mut points = Vec::new();
+    if x == 0 {
+        points.push((cx, cy + y));
+        points.push((cx, cy - y));
+        points.push((cx + y, cy));
+        points.push((cx - y, cy));
+    }
+    if x == y {
+        points.push((cx + x, cy + y));
+        points.push((cx - x, cy + y));
+        points.push((cx + x, cy - y));
+        points.push((cx - x, cy - y));
+    } else if x < y {
+        points.push((cx + x, cy + y));
+        points.push((cx - x, cy + y));
+        points.push((cx + x, cy - y));
+        points.push((cx - x, cy - y));
+
+        points.push((cx + y, cy + x));
+        points.push((cx - y, cy + x));
+        points.push((cx + y, cy - x));
+        points.push((cx - y, cy - x));
+    }
+    points
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn circle_perimeter(center: (usize, usize), radius: usize) -> Vec<(isize, isize)> {
+    let mut x = 0;
+    let mut y = radius as isize;
+    let mut p: isize = (5 - radius as isize * 4) / 4;
+
+    let mut points = circle_points(center, x, y);
+    while x < y {
+        x += 1;
+        if p < 0 {
+            p += 2 * x + 1;
+        } else {
+            y -= 1;
+            p += 2 * (x - y) + 1;
+        }
+        points.append(&mut circle_points(center, x, y));
+    }
+
+    points
+}
+
 fn gen_tiles(difficulty: Difficulty, table_sizes: &[(usize, usize)]) -> Vec<Vec<Tile>> {
     let ((max_x, max_y), mut mines) = match difficulty {
         Difficulty::Easy => (table_sizes[0], 10), // 80
@@ -422,25 +473,18 @@ impl Board {
         }
     }
 
+    #[allow(clippy::cast_sign_loss)]
     pub fn do_game_over_animation(&mut self) {
         assert!(self.game_over.is_some());
         self.clear_fire();
 
-        // Expand out
-        let (x, y) = self.game_over_pos;
-        let diff = self.game_over_state_counter;
-        let min_x = x.checked_sub(diff);
-        let min_y = y.checked_sub(diff);
-        let max_x = x.saturating_add(diff);
-        let max_y = y.saturating_add(diff);
-
-        for x in min_x.unwrap_or(0)..=max_x {
-            self.do_game_over_animation_tile(x, min_y.unwrap_or(usize::MAX));
-            self.do_game_over_animation_tile(x, max_y);
-        }
-        for y in min_y.unwrap_or(0)..=max_y {
-            self.do_game_over_animation_tile(min_x.unwrap_or(usize::MAX), y);
-            self.do_game_over_animation_tile(max_x, y);
+        let tiles = circle_perimeter(self.game_over_pos, self.game_over_state_counter);
+        for (x, y) in tiles {
+            if x < 0 || y < 0 {
+                continue;
+            }
+            let (x, y) = (x as usize, y as usize);
+            self.do_game_over_animation_tile(x, y);
         }
         self.game_over_state_counter += 1;
     }
