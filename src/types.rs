@@ -1,3 +1,4 @@
+use core::panic;
 use std::time::{Duration, Instant};
 
 use rand::prelude::*;
@@ -242,11 +243,11 @@ pub fn do_around(
     matching
 }
 
-fn gen_tiles(difficulty: Difficulty) -> Vec<Vec<Tile>> {
-    let (max_x, max_y, mut mines) = match difficulty {
-        Difficulty::Easy => (10, 8, 10),
-        Difficulty::Medium => (18, 14, 40),
-        Difficulty::Hard => (40, 12, 99),
+fn gen_tiles(difficulty: Difficulty, table_sizes: &[(usize, usize)]) -> Vec<Vec<Tile>> {
+    let ((max_x, max_y), mut mines) = match difficulty {
+        Difficulty::Easy => (table_sizes[0], 10), // 80
+        Difficulty::Medium => (table_sizes[1], 40), // 252
+        Difficulty::Hard => (table_sizes[2], 99), // 480
     };
     let mut tiles = vec![vec![Tile::default(); max_y]; max_x];
 
@@ -268,6 +269,48 @@ fn gen_tiles(difficulty: Difficulty) -> Vec<Vec<Tile>> {
     tiles
 }
 
+const fn check_compatible(board_size: (usize, usize), max_render_size: (u16, u16)) -> bool {
+    let (x, y) = (board_size.0 * 3 + 12, board_size.1 * 3 + 2);
+    let max_width = max_render_size.0 as usize;
+    let max_height = max_render_size.1 as usize;
+
+    x <= max_width && y <= max_height
+}
+
+fn get_compatible_sizes(max_render_size: (u16, u16)) -> [(usize, usize); 3] {
+    let mut sizes = [(0, 0), (0, 0), (0, 0)];
+
+    if check_compatible((10, 8), max_render_size) {
+        sizes[0] = (10, 8);
+    } else if check_compatible((8, 10), max_render_size) {
+        sizes[0] = (8, 10);
+    } else {
+        panic!("terminal is too small");
+    }
+
+    for pair in [(36, 7), (28, 9), (21, 12), (18, 14)].into_iter().rev() {
+        if check_compatible(pair, max_render_size) {
+            sizes[1] = pair;
+            break;
+        } else if check_compatible((pair.1, pair.0), max_render_size) {
+            sizes[1] = (pair.1, pair.0);
+            break;
+        }
+    }
+
+    for pair in [(8, 60), (10, 48), (12, 40), (15, 32), (16, 30), (20, 24)].into_iter().rev() {
+        if check_compatible(pair, max_render_size) {
+            sizes[2] = pair;
+            break;
+        } else if check_compatible((pair.1, pair.0), max_render_size) {
+            sizes[2] = (pair.1, pair.0);
+            break;
+        }
+    }
+
+    sizes
+}
+
 pub struct Board {
     pub difficulty: Difficulty,
     tiles: Vec<Vec<Tile>>,
@@ -275,17 +318,20 @@ pub struct Board {
     first_move: Option<Instant>,
     game_over_pos: (usize, usize),
     game_over_state_counter: usize,
+    pub max_render_size: (u16, u16),
 }
 
 impl Board {
-    pub fn new(difficulty: Difficulty) -> Self {
+    pub fn new(difficulty: Difficulty, max_render_size: (u16, u16)) -> Self {
+        let sizes = get_compatible_sizes(max_render_size);
         Self {
             difficulty,
-            tiles: gen_tiles(difficulty),
+            tiles: gen_tiles(difficulty, &sizes),
             game_over: None,
             first_move: None,
             game_over_pos: (0, 0),
             game_over_state_counter: 1,
+            max_render_size
         }
     }
 
@@ -295,6 +341,13 @@ impl Board {
 
     pub const fn last_move_time(&self) -> Option<Instant> {
         self.game_over
+    }
+
+    pub fn set_max_board_size(&mut self, max_render_size: (u16, u16)) {
+        self.max_render_size = max_render_size;
+        if self.first_move_time().is_none() {
+            self.tiles = gen_tiles(self.difficulty, &get_compatible_sizes(self.max_render_size));
+        }
     }
 
     pub fn to_widget(&self) -> Paragraph {
@@ -325,7 +378,7 @@ impl Board {
                 .as_ref()
                 .map_or(false, |tile| tile.is_mine() || tile.bombs_near() > 0)
         {
-            self.tiles = gen_tiles(self.difficulty);
+            self.tiles = gen_tiles(self.difficulty, &get_compatible_sizes(self.max_render_size));
             tile = self.tiles.get_mut(x).and_then(|x| x.get_mut(y));
         }
 

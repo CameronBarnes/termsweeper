@@ -10,16 +10,16 @@ use super::app::App;
 
 pub fn render(app: &mut App, f: &mut Frame) {
     let (min_x, min_y) = app.get_board_size_with_border();
-    let spare_x = f.size().width - min_x;
-    let spare_y = f.size().height - min_y;
+    let spare_x = f.size().width.saturating_sub(min_x);
+    let spare_y = f.size().height.saturating_sub(min_y);
     let vertical = Layout::new(
         Direction::Vertical,
-        [Length(spare_y / 2), Min(min_y), Length(spare_y / 2)],
+        [Length(spare_y.saturating_div(2)), Min(min_y), Length(spare_y.saturating_div(2))],
     )
     .split(f.size());
     let horizontal = Layout::new(
         Direction::Horizontal,
-        [Length(spare_x / 2), Min(min_x), Length(spare_x / 2)],
+        [Length(spare_x.saturating_div(2)), Min(min_x), Length(spare_x.saturating_div(2))],
     )
     .split(vertical[1]);
     app.board_rect = horizontal[1];
@@ -53,16 +53,16 @@ Press C to change the difficulty",
     if app.change_difficulty {
         let size_x = 30;
         let size_y = 8;
-        let spare_x = f.size().width - size_x;
-        let spare_y = f.size().height - size_y;
+        let spare_x = f.size().width.saturating_sub(size_x);
+        let spare_y = f.size().height.saturating_sub(size_y);
         let vertical = Layout::new(
             Direction::Vertical,
-            [Length(spare_y / 2), Min(size_y), Length(spare_y / 2)],
+            [Length(spare_y.saturating_div(2)), Min(size_y), Length(spare_y.saturating_div(2))],
         )
         .split(f.size());
         let horizontal = Layout::new(
             Direction::Horizontal,
-            [Length(spare_x / 2), Min(size_x), Length(spare_x / 2)],
+            [Length(spare_x.saturating_div(2)), Min(size_x), Length(spare_x.saturating_div(2))],
         )
         .split(vertical[1]);
         let items = vec![Difficulty::Easy, Difficulty::Medium, Difficulty::Hard]

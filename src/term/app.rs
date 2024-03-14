@@ -18,20 +18,22 @@ pub struct App {
     leaderboard_updated: bool,
     leaderboard: Vec<Score>,
     pub change_difficulty: bool,
+    term_size: (u16, u16),
 }
 
 impl App {
-    pub fn new(difficulty: Difficulty) -> Self {
+    pub fn new(difficulty: Difficulty, term_size: (u16, u16)) -> Self {
         let mut leaderboard = read_leaderboard().unwrap_or_default();
         leaderboard.sort_unstable_by_key(Score::time);
         Self {
             should_quit: false,
-            board: Board::new(difficulty),
+            board: Board::new(difficulty, term_size),
             board_rect: Rect::default(),
             last_click_pos: (0, 0),
             leaderboard_updated: false,
             leaderboard,
             change_difficulty: false,
+            term_size
         }
     }
 
@@ -167,6 +169,11 @@ impl App {
 
     pub fn new_game(&mut self) {
         self.leaderboard_updated = false;
-        self.board = Board::new(self.board.difficulty);
+        self.board = Board::new(self.board.difficulty, self.term_size);
+    }
+
+    pub fn update_size(&mut self, term_size: (u16, u16)) {
+        self.term_size = term_size;
+        self.board.set_max_board_size(term_size);
     }
 }
