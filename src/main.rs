@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
     let size = terminal.size().unwrap(); // If this fails we might as well exit now
-    let events = EventHandler::new(120);
+    let events = EventHandler::new(30);
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
  

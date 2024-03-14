@@ -273,20 +273,22 @@ fn circle_points(center: (usize, usize), x: isize, y: isize) -> Vec<(isize, isiz
     points
 }
 
+#[allow(clippy::cast_precision_loss)]
 #[allow(clippy::cast_possible_wrap)]
-fn circle_perimeter(center: (usize, usize), radius: usize) -> Vec<(isize, isize)> {
+#[allow(clippy::cast_possible_truncation)]
+fn circle_perimeter(center: (usize, usize), radius: f64) -> Vec<(isize, isize)> {
     let mut x = 0;
     let mut y = radius as isize;
-    let mut p: isize = (5 - radius as isize * 4) / 4;
+    let mut p = radius.mul_add(-4., 5.) / 4.;
 
     let mut points = circle_points(center, x, y);
     while x < y {
         x += 1;
-        if p < 0 {
-            p += 2 * x + 1;
+        if p < 0. {
+            p += 2.0f64.mul_add(x as f64, 1.);
         } else {
             y -= 1;
-            p += 2 * (x - y) + 1;
+            p += 2.0f64.mul_add(x as f64 - y as f64, 1.);
         }
         points.append(&mut circle_points(center, x, y));
     }
@@ -368,7 +370,7 @@ pub struct Board {
     game_over: Option<Instant>,
     first_move: Option<Instant>,
     game_over_pos: (usize, usize),
-    game_over_state_counter: usize,
+    game_over_state_counter: f64,
     pub max_render_size: (u16, u16),
 }
 
@@ -381,7 +383,7 @@ impl Board {
             game_over: None,
             first_move: None,
             game_over_pos: (0, 0),
-            game_over_state_counter: 1,
+            game_over_state_counter: 1.,
             max_render_size
         }
     }
@@ -463,13 +465,16 @@ impl Board {
         }
     }
 
-    fn do_game_over_animation_tile(&mut self, x: usize, y: usize) {
+    fn do_game_over_animation_tile(&mut self, x: usize, y: usize) -> bool {
         if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(y)) {
             if tile.is_mine() {
                 tile.set_state(TileState::Visible);
             } else {
                 tile.fire = true;
             }
+            true
+        } else {
+            false
         }
     }
 
@@ -478,15 +483,26 @@ impl Board {
         assert!(self.game_over.is_some());
         self.clear_fire();
 
+        let mut updated = false;
+
         let tiles = circle_perimeter(self.game_over_pos, self.game_over_state_counter);
         for (x, y) in tiles {
             if x < 0 || y < 0 {
                 continue;
             }
             let (x, y) = (x as usize, y as usize);
-            self.do_game_over_animation_tile(x, y);
+            if self.do_game_over_animation_tile(x, y) {
+                updated = true;
+            }
         }
-        self.game_over_state_counter += 1;
+        if !updated {
+            for tile in self.tiles.iter_mut().flat_map(|vec| vec.iter_mut()) {
+                if tile.is_mine() {
+                    tile.set_state(TileState::Visible);
+                }
+            }
+        }
+        self.game_over_state_counter += 0.25;
     }
 
     pub fn do_control_click(&mut self, x: usize, y: usize) {
