@@ -1,5 +1,5 @@
 use core::panic;
-use std::time::{Duration, Instant};
+use std::{time::{Duration, Instant}, usize};
 
 use rand::prelude::*;
 use ratatui::{
@@ -412,6 +412,16 @@ impl Board {
         }
     }
 
+    fn do_game_over_animation_tile(&mut self, x: usize, y: usize) {
+        if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(y)) {
+            if tile.is_mine() {
+                tile.set_state(TileState::Visible);
+            } else {
+                tile.fire = true;
+            }
+        }
+    }
+
     pub fn do_game_over_animation(&mut self) {
         assert!(self.game_over.is_some());
         self.clear_fire();
@@ -425,36 +435,12 @@ impl Board {
         let max_y = y.saturating_add(diff);
 
         for x in min_x.unwrap_or(0)..=max_x {
-            if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(min_y.unwrap_or(usize::MAX))) {
-                if tile.is_mine() {
-                    tile.set_state(TileState::Visible);
-                } else {
-                    tile.fire = true;
-                }
-            }
-            if let Some(tile) = self.tiles.get_mut(x).and_then(|col| col.get_mut(max_y)) {
-                if tile.is_mine() {
-                    tile.set_state(TileState::Visible);
-                } else {
-                    tile.fire = true;
-                }
-            }
+            self.do_game_over_animation_tile(x, min_y.unwrap_or(usize::MAX));
+            self.do_game_over_animation_tile(x, max_y);
         }
         for y in min_y.unwrap_or(0)..=max_y {
-            if let Some(tile) = self.tiles.get_mut(min_x.unwrap_or(usize::MAX)).and_then(|col| col.get_mut(y)) {
-                if tile.is_mine() {
-                    tile.set_state(TileState::Visible);
-                } else {
-                    tile.fire = true;
-                }
-            }
-            if let Some(tile) = self.tiles.get_mut(max_x).and_then(|col| col.get_mut(y)) {
-                if tile.is_mine() {
-                    tile.set_state(TileState::Visible);
-                } else {
-                    tile.fire = true;
-                }
-            }
+            self.do_game_over_animation_tile(min_x.unwrap_or(usize::MAX), y);
+            self.do_game_over_animation_tile(max_x, y);
         }
         self.game_over_state_counter += 1;
     }
