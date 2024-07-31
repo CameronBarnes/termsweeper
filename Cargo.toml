@@ -15,14 +15,28 @@ nursery = "deny"
 
 [profile.release]
 opt-level = 'z'
-lto = true
+lto = "fat"
 codegen-units = 1
 panic = 'abort'
 strip = "symbols"
 
+[build]
+rustflags = [
+"-C",
+# Improves performance while sacrificing compatibility
+#"target-cpu=native",
+#Pick one of the two following options, prefer mold if available
+"link-arg=-fuse-ld=lld",
+#"link-arg=-fuse-ld=mold"
+
+# Nightly
+   "-Zshare-generics=y",
+   "-Zthreads=0",
+]
+
 [dependencies]
 anyhow = "1.0.80"
-crossterm = "0.27.0"
+crossterm = "0.27"
 home = "0.5.9"
 rand = "0.8.5"
-ratatui = "0.26"
+ratatui = "0.27"
