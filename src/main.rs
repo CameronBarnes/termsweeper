@@ -1,10 +1,15 @@
+use crate::term::{
+    app::App,
+    event::EventHandler,
+    tui::Tui,
+    update::{handle_keys, handle_mouse},
+};
+use anyhow::{Ok, Result};
 use ratatui::{prelude::CrosstermBackend, Terminal};
-use anyhow::{Result, Ok};
-use crate::term::{app::App, event::EventHandler, tui::Tui, update::{handle_keys, handle_mouse}};
 
+mod io;
 mod term;
 mod types;
-mod io;
 
 fn main() -> Result<()> {
     // Init term ui
@@ -14,7 +19,7 @@ fn main() -> Result<()> {
     let events = EventHandler::new(30);
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
- 
+
     // Build app object
     let mut app = App::new(types::Difficulty::Medium, (size.width, size.height));
 

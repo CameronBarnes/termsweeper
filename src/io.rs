@@ -1,8 +1,13 @@
-use std::{fs::{File, self, OpenOptions}, path::{Path, PathBuf}, io::{BufReader, BufRead, Write}, time::Duration};
+use std::{
+    fs::{self, File, OpenOptions},
+    io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
-use crate::types::{Score, Difficulty};
+use crate::types::{Difficulty, Score};
 
 fn get_leaderboard_path() -> Option<PathBuf> {
     let mut path = home::home_dir()?;
@@ -31,7 +36,7 @@ fn parse_line(str: &str) -> Option<Score> {
         } else {
             None
         }
-    } else  {
+    } else {
         None
     }
 }
@@ -57,11 +62,17 @@ pub fn read_leaderboard() -> Option<Vec<Score>> {
     })
 }
 
-pub fn write_leaderboard(leaderboard: &Vec<Score>) -> Result<()> {
+pub fn write_leaderboard(leaderboard: &[Score]) -> Result<()> {
     // Combine new and old leaderboards, convert to strings
     let mut existing = read_leaderboard().unwrap_or_else(|| Vec::with_capacity(leaderboard.len()));
-    leaderboard.iter().copied().for_each(|score| existing.push(score));
-    let mut existing: Vec<String> = existing.into_iter().map(|score| score.as_string()).collect();
+    leaderboard
+        .iter()
+        .copied()
+        .for_each(|score| existing.push(score));
+    let mut existing: Vec<String> = existing
+        .into_iter()
+        .map(|score| score.as_string())
+        .collect();
 
     // Remove duplicates
     existing.sort_unstable();

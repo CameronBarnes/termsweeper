@@ -33,7 +33,7 @@ impl App {
             leaderboard_updated: false,
             leaderboard,
             change_difficulty: false,
-            term_size
+            term_size,
         }
     }
 

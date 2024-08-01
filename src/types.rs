@@ -1,5 +1,5 @@
 use core::panic;
-use std::{time::{Duration, Instant}, usize};
+use std::time::{Duration, Instant};
 
 use rand::prelude::*;
 use ratatui::{
@@ -113,9 +113,7 @@ impl Tile {
                     } else {
                         vec![
                             Span::raw("▐").dark_gray(),
-                            num_as_span(self.bombs_near())
-                                .bold()
-                                .on_dark_gray(),
+                            num_as_span(self.bombs_near()).bold().on_dark_gray(),
                             Span::raw("▌").dark_gray(),
                         ]
                     }
@@ -138,7 +136,11 @@ impl Tile {
             _ => panic!(),
         };
         if self.fire {
-            line = line.into_iter().enumerate().map(|(index, span)| if index == 1 {span} else {span.on_red()}).collect();
+            line = line
+                .into_iter()
+                .enumerate()
+                .map(|(index, span)| if index == 1 { span } else { span.on_red() })
+                .collect();
         }
         line
     }
@@ -155,7 +157,7 @@ fn num_as_span(num: usize) -> Span<'static> {
         6 => Span::raw("6").light_cyan(),
         7 => Span::raw("7").black(),
         8 => Span::raw("8").gray(),
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 
@@ -298,9 +300,9 @@ fn circle_perimeter(center: (usize, usize), radius: f64) -> Vec<(isize, isize)> 
 
 fn gen_tiles(difficulty: Difficulty, table_sizes: &[(usize, usize)]) -> Vec<Vec<Tile>> {
     let ((max_x, max_y), mut mines) = match difficulty {
-        Difficulty::Easy => (table_sizes[0], 10), // 80
+        Difficulty::Easy => (table_sizes[0], 10),   // 80
         Difficulty::Medium => (table_sizes[1], 40), // 252
-        Difficulty::Hard => (table_sizes[2], 99), // 480
+        Difficulty::Hard => (table_sizes[2], 99),   // 480
     };
     let mut tiles = vec![vec![Tile::default(); max_y]; max_x];
 
@@ -351,7 +353,10 @@ fn get_compatible_sizes(max_render_size: (u16, u16)) -> [(usize, usize); 3] {
         }
     }
 
-    for pair in [(8, 60), (10, 48), (12, 40), (15, 32), (16, 30), (20, 24)].into_iter().rev() {
+    for pair in [(8, 60), (10, 48), (12, 40), (15, 32), (16, 30), (20, 24)]
+        .into_iter()
+        .rev()
+    {
         if check_compatible(pair, max_render_size) {
             sizes[2] = pair;
             break;
@@ -384,7 +389,7 @@ impl Board {
             first_move: None,
             game_over_pos: (0, 0),
             game_over_state_counter: 1.,
-            max_render_size
+            max_render_size,
         }
     }
 

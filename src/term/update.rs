@@ -1,4 +1,4 @@
-use crossterm::event::{KeyEvent, KeyCode, KeyModifiers, MouseEvent, MouseEventKind, MouseButton};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::app::App;
 use crate::types::Difficulty;
@@ -11,14 +11,14 @@ pub fn handle_keys(app: &mut App, key_event: KeyEvent) {
             } else {
                 app.should_quit = true;
             }
-        },
+        }
         KeyCode::Char('c' | 'C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.should_quit = true;
             } else {
                 app.change_difficulty = !app.change_difficulty;
             }
-        },
+        }
         KeyCode::Enter => app.change_difficulty = false,
         KeyCode::Char('r' | 'R') => app.new_game(),
         KeyCode::Up => {
@@ -29,7 +29,7 @@ pub fn handle_keys(app: &mut App, key_event: KeyEvent) {
                     Difficulty::Hard => app.set_difficulty(Difficulty::Medium),
                 }
             }
-        },
+        }
         KeyCode::Down => {
             if app.change_difficulty {
                 match app.difficulty() {

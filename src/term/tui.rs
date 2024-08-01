@@ -18,7 +18,7 @@ pub struct Tui {
 }
 
 impl Tui {
-    pub fn new(terminal: CrosstermTerminal, events: EventHandler) -> Self {
+    pub const fn new(terminal: CrosstermTerminal, events: EventHandler) -> Self {
         Self { terminal, events }
     }
 

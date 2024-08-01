@@ -1,7 +1,8 @@
 use ratatui::{
     prelude::{Alignment, Constraint::*, Direction, Layout},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap, Clear},
-    Frame, style::{Style, Stylize},
+    style::{Style, Stylize},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    Frame,
 };
 
 use crate::types::Difficulty;
@@ -14,12 +15,20 @@ pub fn render(app: &mut App, f: &mut Frame) {
     let spare_y = f.size().height.saturating_sub(min_y);
     let vertical = Layout::new(
         Direction::Vertical,
-        [Length(spare_y.saturating_div(2)), Min(min_y), Length(spare_y.saturating_div(2))],
+        [
+            Length(spare_y.saturating_div(2)),
+            Min(min_y),
+            Length(spare_y.saturating_div(2)),
+        ],
     )
     .split(f.size());
     let horizontal = Layout::new(
         Direction::Horizontal,
-        [Length(spare_x.saturating_div(2)), Min(min_x), Length(spare_x.saturating_div(2))],
+        [
+            Length(spare_x.saturating_div(2)),
+            Min(min_x),
+            Length(spare_x.saturating_div(2)),
+        ],
     )
     .split(vertical[1]);
     app.board_rect = horizontal[1];
@@ -57,12 +66,20 @@ Press C to change the difficulty",
         let spare_y = f.size().height.saturating_sub(size_y);
         let vertical = Layout::new(
             Direction::Vertical,
-            [Length(spare_y.saturating_div(2)), Min(size_y), Length(spare_y.saturating_div(2))],
+            [
+                Length(spare_y.saturating_div(2)),
+                Min(size_y),
+                Length(spare_y.saturating_div(2)),
+            ],
         )
         .split(f.size());
         let horizontal = Layout::new(
             Direction::Horizontal,
-            [Length(spare_x.saturating_div(2)), Min(size_x), Length(spare_x.saturating_div(2))],
+            [
+                Length(spare_x.saturating_div(2)),
+                Min(size_x),
+                Length(spare_x.saturating_div(2)),
+            ],
         )
         .split(vertical[1]);
         let items = vec![Difficulty::Easy, Difficulty::Medium, Difficulty::Hard]
@@ -73,12 +90,14 @@ Press C to change the difficulty",
             Difficulty::Medium => 1,
             Difficulty::Hard => 2,
         };
-        let list = List::new(items).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Difficulty")
-                .title_alignment(Alignment::Center),
-        ).highlight_style(Style::new().reversed());
+        let list = List::new(items)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Difficulty")
+                    .title_alignment(Alignment::Center),
+            )
+            .highlight_style(Style::new().reversed());
         f.render_widget(Clear, horizontal[1]);
         f.render_stateful_widget(
             list,
